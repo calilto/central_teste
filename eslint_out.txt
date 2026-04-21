@@ -1,0 +1,153 @@
+[0m[0m
+[0m[4mC:\Users\User4\OneDrive\Antigravity\Central_de_Produtos\src\Produtos_Mi\EurostockRelatorio.jsx[24m[0m
+[0m    [2m1:27[22m  [31merror[39m  'useEffect' is defined but never used. Allowed unused vars must match /^[A-Z_]/u               [2mno-unused-vars[22m[0m
+[0m    [2m1:47[22m  [31merror[39m  'useRef' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                  [2mno-unused-vars[22m[0m
+[0m   [2m18:7[22m   [31merror[39m  'formatPercent' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m  [2m366:24[22m  [31merror[39m  'meetingMode' is defined but never used                                                        [2mno-unused-vars[22m[0m
+[0m  [2m456:26[22m  [31merror[39m  'meetingMode' is defined but never used                                                        [2mno-unused-vars[22m[0m
+[0m  [2m555:11[22m  [31merror[39m  'handlePrint' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u    [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\User4\OneDrive\Antigravity\Central_de_Produtos\src\Produtos_Mi\EurostockSimulador.jsx[24m[0m
+[0m  [2m18:7[22m  [31merror[39m  'formatPercent' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  [2mno-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\User4\OneDrive\Antigravity\Central_de_Produtos\src\Produtos_Mi\SimuladorOpcoes.jsx[24m[0m
+[0m    [2m2:10[22m  [31merror[39m    'supabase' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    [2mno-unused-vars[22m[0m
+[0m  [2m184:5[22m   [31merror[39m    Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  182 |   useEffect(() => {[0m
+[0m  183 |     const today = new Date();[0m
+[0m> 184 |     setTodayDate(today.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }));[0m
+[0m      |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  185 |[0m
+[0m  186 |     // Default maturity +2 years[0m
+[0m  187 |     const nextYear = new Date();                                                                                                     [2mreact-hooks/set-state-in-effect[22m[0m
+[0m  [2m197:25[22m  [31merror[39m    Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  195 |     const end = new Date(maturityDate);[0m
+[0m  196 |     const diffTime = end - start;[0m
+[0m> 197 |     if (diffTime < 0) { setCdiPeriod(0); return; }[0m
+[0m      |                         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  198 |[0m
+[0m  199 |     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));[0m
+[0m  200 |     const workDays = Math.floor(diffDays * (5 / 7));                                                             [2mreact-hooks/set-state-in-effect[22m[0m
+[0m  [2m258:9[22m   [31merror[39m    Unexpected lexical declaration in case block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-case-declarations[22m[0m
+[0m  [2m282:9[22m   [31merror[39m    Unexpected lexical declaration in case block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-case-declarations[22m[0m
+[0m  [2m295:9[22m   [31merror[39m    Unexpected lexical declaration in case block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-case-declarations[22m[0m
+[0m  [2m307:9[22m   [31merror[39m    Unexpected lexical declaration in case block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-case-declarations[22m[0m
+[0m  [2m308:9[22m   [31merror[39m    Unexpected lexical declaration in case block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-case-declarations[22m[0m
+[0m  [2m340:9[22m   [31merror[39m    Unexpected lexical declaration in case block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-case-declarations[22m[0m
+[0m  [2m372:9[22m   [31merror[39m    Unexpected lexical declaration in case block                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       [2mno-case-declarations[22m[0m
+[0m  [2m389:29[22m  [31merror[39m    Compilation Skipped: Existing memoization could not be preserved[0m
+[0m[0m
+[0mReact Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `calculateReturn`, but the source dependencies were [params, selectedStrategy, simulatedCouponsReceived]. Inferred different dependency than source.[0m
+[0m[0m
+[0m  387 |[0m
+[0m  388 |   // --- CHART DATA GENERATION ---[0m
+[0m> 389 |   const chartData = useMemo(() => {[0m
+[0m      |                             ^^^^^^^[0m
+[0m> 390 |     const dataPoints = [];[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0m> 391 |     const rangeMin = -60;[0m
+[0m      …[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0m> 430 |     });[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0m> 431 |   }, [params, selectedStrategy, simulatedCouponsReceived]);[0m
+[0m      | ^^^^ Could not preserve existing manual memoization[0m
+[0m  432 |[0m
+[0m  433 |   // --- SIMULATOR RESULTS ---[0m
+[0m  434 |   const simulationResults = useMemo(() => {                                                             [2mreact-hooks/preserve-manual-memoization[22m[0m
+[0m  [2m389:29[22m  [31merror[39m    Compilation Skipped: Existing memoization could not be preserved[0m
+[0m[0m
+[0mReact Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `calculateReturn`, but the source dependencies were [params, selectedStrategy, simulatedCouponsReceived]. Inferred different dependency than source.[0m
+[0m[0m
+[0m  387 |[0m
+[0m  388 |   // --- CHART DATA GENERATION ---[0m
+[0m> 389 |   const chartData = useMemo(() => {[0m
+[0m      |                             ^^^^^^^[0m
+[0m> 390 |     const dataPoints = [];[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0m> 391 |     const rangeMin = -60;[0m
+[0m      …[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0m> 430 |     });[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[0m> 431 |   }, [params, selectedStrategy, simulatedCouponsReceived]);[0m
+[0m      | ^^^^ Could not preserve existing manual memoization[0m
+[0m  432 |[0m
+[0m  433 |   // --- SIMULATOR RESULTS ---[0m
+[0m  434 |   const simulationResults = useMemo(() => {                                                             [2mreact-hooks/preserve-manual-memoization[22m[0m
+[0m  [2m431:6[22m   [33mwarning[39m  React Hook useMemo has a missing dependency: 'calculateReturn'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   [2mreact-hooks/exhaustive-deps[22m[0m
+[0m  [2m434:37[22m  [31merror[39m    Compilation Skipped: Existing memoization could not be preserved[0m
+[0m[0m
+[0mReact Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `calculateReturn`, but the source dependencies were [simulatedVariation, params, selectedStrategy, investment, cdiPeriod, simulatedCouponsReceived]. Inferred different dependency than source.[0m
+[0m[0m
+[0m  432 |[0m
+[0m  433 |   // --- SIMULATOR RESULTS ---[0m
+[0m> 434 |   const simulationResults = useMemo(() => {[0m
+[0m      |                                     ^^^^^^^[0m
+[0m> 435 |     let retPct = 0;[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^[0m
+[0m> 436 |     let scenario = "";[0m
+[0m      …[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^[0m
+[0m> 469 |     return { retPct, valFinal, profit, scenario, pctCDI };[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^[0m
+[0m> 470 |   }, [simulatedVariation, params, selectedStrategy, investment, cdiPeriod, simulatedCouponsReceived]);[0m
+[0m      | ^^^^ Could not preserve existing manual memoization[0m
+[0m  471 |[0m
+[0m  472 |[0m
+[0m  473 |   // Formatters  [2mreact-hooks/preserve-manual-memoization[22m[0m
+[0m  [2m434:37[22m  [31merror[39m    Compilation Skipped: Existing memoization could not be preserved[0m
+[0m[0m
+[0mReact Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `calculateReturn`, but the source dependencies were [simulatedVariation, params, selectedStrategy, investment, cdiPeriod, simulatedCouponsReceived]. Inferred different dependency than source.[0m
+[0m[0m
+[0m  432 |[0m
+[0m  433 |   // --- SIMULATOR RESULTS ---[0m
+[0m> 434 |   const simulationResults = useMemo(() => {[0m
+[0m      |                                     ^^^^^^^[0m
+[0m> 435 |     let retPct = 0;[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^[0m
+[0m> 436 |     let scenario = "";[0m
+[0m      …[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^[0m
+[0m> 469 |     return { retPct, valFinal, profit, scenario, pctCDI };[0m
+[0m      | ^^^^^^^^^^^^^^^^^^^[0m
+[0m> 470 |   }, [simulatedVariation, params, selectedStrategy, investment, cdiPeriod, simulatedCouponsReceived]);[0m
+[0m      | ^^^^ Could not preserve existing manual memoization[0m
+[0m  471 |[0m
+[0m  472 |[0m
+[0m  473 |   // Formatters  [2mreact-hooks/preserve-manual-memoization[22m[0m
+[0m  [2m470:6[22m   [33mwarning[39m  React Hook useMemo has a missing dependency: 'calculateReturn'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   [2mreact-hooks/exhaustive-deps[22m[0m
+[0m[0m
+[0m[4mC:\Users\User4\OneDrive\Antigravity\Central_de_Produtos\src\components\HubCentral.jsx[24m[0m
+[0m  [2m93:9[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0m  91 |         // Seleciona 3 frases aleatórias diferentes no carregamento do componente[0m
+[0m  92 |         const shuffled = [...allInsights].sort(() => 0.5 - Math.random());[0m
+[0m> 93 |         setCurrentInsights(shuffled.slice(0, 3));[0m
+[0m     |         ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  94 |     }, []);[0m
+[0m  95 |[0m
+[0m  96 |     const getInitials = () => {  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[31m[1m✖ 24 problems (22 errors, 2 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m
