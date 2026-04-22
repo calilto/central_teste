@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { send, readJson } from "./_utils";
+import { send, readJson } from "./_utils.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
