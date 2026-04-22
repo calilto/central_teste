@@ -23,12 +23,12 @@ export async function readJson(req) {
  * SUPABASE_SERVICE_ROLE_KEY
  */
 export async function requireAdmin(req, res) {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const ANON = process.env.SUPABASE_ANON_KEY;
+  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  const ANON = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!SUPABASE_URL || !SERVICE_ROLE) {
-    send(res, 500, { error: "Server env vars not set (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)" });
+    send(res, 500, { error: `Server env vars not set. URL: ${!!SUPABASE_URL}, KEY: ${!!SERVICE_ROLE}` });
     return null;
   }
 
