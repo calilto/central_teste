@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (!token) return send(res, 401, { error: "Unauthenticated" });
 
   const { data: userData, error: authErr } = await supabase.auth.getUser(token);
-  if (authErr || !userData?.user) return send(res, 401, { error: "Invalid session" });
+  if (authErr || !userData?.user) return send(res, 401, { error: `Invalid session: ${authErr?.message || 'No user'}` });
 
   // 2. Verificar se é ADMIN
   const { data: roleData, error: roleErr } = await supabase
@@ -37,11 +37,11 @@ export default async function handler(req, res) {
   try {
     console.log(`[CLEAR] Tentando limpar pipeline...`);
     // 3. Deletar TUDO
-    // Usar um filtro que sempre é verdadeiro (IDs UUIDs são sempre maiores que zero/vazios)
+    // Usar filtro por UUID inexistente para garantir que todos os registros sejam deletados
     const { data: delResult, error: delErr } = await supabase
       .from("pipeline_opportunities")
       .delete()
-      .gte("assessor_id", 0); // Todos os assessor_id são >= 0
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
     if (delErr) {
         console.error("[CLEAR] Erro na deleção:", delErr);

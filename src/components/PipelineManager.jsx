@@ -76,6 +76,7 @@ export default function PipelineManager({ session }) {
   const [selectedCategory, setSelectedCategory] = useState('RV');
   const [search, setSearch] = useState('');
   const [expandedClients, setExpandedClients] = useState(new Set());
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const categoryMap = {
     'RV': { name: 'Renda Variável', icon: <TrendingUp className="w-4 h-4" />, role: 'leader_rv', aliases: ['RV', 'RENDA VARIÁVEL', 'RENDA VARIAVEL'] },
@@ -157,17 +158,37 @@ export default function PipelineManager({ session }) {
     try {
       const reader = new FileReader();
       reader.onload = async (evt) => {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        const response = await fetch('/api/upload-pipeline', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession.access_token}` },
-          body: JSON.stringify({ data, category: selectedCategory })
-        });
-        if (response.ok) { setMsg({ type: 'success', text: `Enviado!` }); fetchOpportunities(); }
-        else { const err = await response.json(); setMsg({ type: 'error', text: err.error }); }
+        try {
+          const bstr = evt.target.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (!currentSession?.access_token) {
+            setMsg({ type: 'error', text: 'Sessão expirada. Faça login novamente.' });
+            setUploading(false);
+            return;
+          }
+          const response = await fetch('/api/upload-pipeline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession.access_token}` },
+            body: JSON.stringify({ data, category: selectedCategory })
+          });
+          if (response.ok) {
+            setMsg({ type: 'success', text: `Enviado com sucesso!` });
+            fetchOpportunities();
+          } else {
+            let errorText = `Erro ${response.status}`;
+            try { const err = await response.json(); errorText = err.error || errorText; } catch (_) {}
+            setMsg({ type: 'error', text: errorText });
+          }
+        } catch (innerErr) {
+          setMsg({ type: 'error', text: `Erro ao processar: ${innerErr.message}` });
+        } finally {
+          setUploading(false);
+        }
+      };
+      reader.onerror = () => {
+        setMsg({ type: 'error', text: 'Erro ao ler o arquivo. Tente novamente.' });
         setUploading(false);
       };
       reader.readAsBinaryString(file);
@@ -210,7 +231,7 @@ export default function PipelineManager({ session }) {
   }, [filteredOps]);
 
   const clearPipeline = async () => {
-    if (!confirm("⚠️ ATENÇÃO: Deseja apagar TODO o pipeline de todas as áreas?")) return;
+    setShowClearConfirm(false);
     setMsg({ type: 'info', text: 'Limpando base...' });
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -511,11 +532,24 @@ export default function PipelineManager({ session }) {
                 <h4 className="text-lg font-bold text-white">Arraste sua planilha aqui</h4>
                 <p className="text-sm text-[#64748B]">Clique para explorar</p>
               </div>
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center gap-4 relative">
                 <button onClick={downloadTemplate} className="px-6 py-3 bg-white/5 rounded-xl border border-white/10 text-xs font-bold uppercase"><Download className="w-4 h-4 inline mr-2" /> Modelo</button>
-                  {userRole === 'admin' && <button onClick={clearPipeline} className="px-6 py-3 bg-red-500/10 rounded-xl border border-red-500/20 text-red-500 text-xs font-bold uppercase"><Trash2 className="w-4 h-4 inline mr-2" /> Limpar Tudo</button>}
+                {userRole === 'admin' && (
+                  <>
+                    <button onClick={() => setShowClearConfirm(true)} className="px-6 py-3 bg-red-500/10 rounded-xl border border-red-500/20 text-red-500 text-xs font-bold uppercase"><Trash2 className="w-4 h-4 inline mr-2" /> Limpar Tudo</button>
+                    {showClearConfirm && (
+                      <div className="absolute -top-20 left-1/2 -translate-x-1/2 bg-[#1C1F26] border border-red-500/30 p-4 rounded-xl shadow-2xl z-10 w-80 text-center">
+                        <p className="text-xs text-white mb-3">⚠️ Tem certeza? Isso apagará TODAS as oportunidades de todas as áreas!</p>
+                        <div className="flex gap-2 justify-center">
+                          <button onClick={() => setShowClearConfirm(false)} className="px-3 py-1.5 bg-white/10 rounded text-xs text-white hover:bg-white/20">Cancelar</button>
+                          <button onClick={clearPipeline} className="px-3 py-1.5 bg-red-500 rounded text-xs text-white hover:bg-red-600 font-bold">Sim, Apagar Tudo</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-              {msg.text && <div className={`p-4 rounded-xl text-xs font-bold border ${msg.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>{msg.text}</div>}
+              {msg.text && <div className={`p-4 rounded-xl text-xs font-bold border ${msg.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-400' : msg.type === 'info' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>{msg.type === 'info' && <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />}{msg.text}</div>}
            </div>
         </div>
       ) : (

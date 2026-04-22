@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   // Injetar envs no processo para que as funções do /api as encontrem
   process.env.SUPABASE_URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL;
   process.env.SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
-  process.env.SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = env.VITE_SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 
   return {
     plugins: [
