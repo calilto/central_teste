@@ -610,14 +610,30 @@ export default function PipelineManager({ session }) {
           <div className="space-y-6">
             {Object.entries(groupedTasks).map(([clienteNome, ops]) => {
               const is360 = expandedClients.has(clienteNome);
+              const clientReceitaPotencial = ops.reduce((acc, op) => acc + (op.receita || 0), 0);
+              const clientReceitaConvertida = ops.filter(op => op.status === 'gain').reduce((acc, op) => acc + (op.receita || 0), 0);
+
               return (
               <div key={clienteNome} className={`bg-[#15171C] border ${is360 ? 'border-[#E8B923]' : 'border-[#1F232B]'} rounded-3xl overflow-hidden shadow-2xl transition-all`}>
                 <div className="p-6 flex items-center justify-between bg-white/[0.02] border-b border-white/5">
                   <div className="flex items-center gap-5">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#E8B923] to-[#B8860B] flex items-center justify-center text-black font-black text-lg">{clienteNome[0]}</div>
                     <div>
-                      <h4 className="text-base font-black text-white">{clienteNome}</h4>
-                      <p className="text-[11px] text-[#64748B] font-bold">Cod: {ops[0].cliente_codigo || '-'} • <span className="text-[#E8B923]">{ops.length} itens</span></p>
+                      <h4 className="text-xl font-black text-white">{clienteNome}</h4>
+                      <div className="flex items-center gap-4 mt-1">
+                        <p className="text-xs text-[#64748B] font-bold">Cod: {ops[0].cliente_codigo || '-'} • <span className="text-[#E8B923]">{ops.length} itens</span></p>
+                        {clientReceitaPotencial > 0 && (
+                          <div className="flex items-center gap-2 bg-[#E8B923]/10 border border-[#E8B923]/30 px-3 py-1 rounded-lg">
+                            <TrendingUp className="w-4 h-4 text-[#E8B923]" />
+                            <span className="text-sm font-black text-[#E8B923]">
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(clientReceitaConvertida)}
+                            </span>
+                            <span className="text-xs font-bold text-[#64748B]">
+                              / {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(clientReceitaPotencial)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <button 
