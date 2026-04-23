@@ -200,8 +200,13 @@ export default function PipelineManager({ session }) {
         const total = list.length;
         const worked = list.filter(op => op.status === 'gain' || op.status === 'loss').length;
         const gain = list.filter(op => op.status === 'gain').length;
+        
+        const totalReceita = list.reduce((acc, op) => acc + (op.receita || 0), 0);
+        const receitaConvertida = list.filter(op => op.status === 'gain').reduce((acc, op) => acc + (op.receita || 0), 0);
+
         return {
           total, worked, gain,
+          totalReceita, receitaConvertida,
           efficiency: total > 0 ? Math.round((worked / total) * 100) : 0,
           conversion: worked > 0 ? Math.round((gain / worked) * 100) : 0
         };
@@ -268,6 +273,7 @@ export default function PipelineManager({ session }) {
         'Data de Carência': '-',
         'Quantidade': 1000,
         ' Financeiro ': 50000, 
+        'Receita': 1500,
         'Oportunidade': 'Aumentar exposição em Vale',
         'Time': 'RV'
       },
@@ -284,6 +290,7 @@ export default function PipelineManager({ session }) {
         'Data de Carência': '07/12/2023',
         'Quantidade': 150,
         ' Financeiro ': 150000, 
+        'Receita': 300,
         'Oportunidade': 'Vencimento vindo da concorrência',
         'Time': 'FIXA_FUNDOS'
       },
@@ -300,6 +307,7 @@ export default function PipelineManager({ session }) {
         'Data de Carência': '-',
         'Quantidade': 1,
         ' Financeiro ': 25000, 
+        'Receita': 8000,
         'Oportunidade': 'Proteção familiar e sucessão',
         'Time': 'SEGUROS'
       },
@@ -316,6 +324,7 @@ export default function PipelineManager({ session }) {
         'Data de Carência': '21/09/2023',
         'Quantidade': 1,
         ' Financeiro ': 850000, 
+        'Receita': 17000,
         'Oportunidade': 'Taxa competitiva para expansão',
         'Time': 'PJ'
       }
@@ -324,7 +333,7 @@ export default function PipelineManager({ session }) {
       header: [
         'Cliente', 'Código Cliente', 'Assessor', 'Ativo', 'Ticker', 'Emissor', 'Taxa', 
         'Data de Aplicação', 'Data de Vencimento', 'Data de Carência', 'Quantidade', 
-        ' Financeiro ', 'Oportunidade', 'Time'
+        ' Financeiro ', 'Receita', 'Oportunidade', 'Time'
       ] 
     });
     const wb = XLSX.utils.book_new();
@@ -416,6 +425,21 @@ export default function PipelineManager({ session }) {
                       </div>
                   </div>
               </div>
+
+              {/* Receita */}
+              <div className={`rounded-2xl p-3 border relative overflow-hidden transition-colors ${isActive ? 'bg-[#15171C] border-[#E8B923]/30' : 'bg-[#15171C] border-[#1F232B]'}`}>
+                  <div className="flex items-center justify-between relative z-10">
+                      <div>
+                          <p className="text-[9px] text-[#94A3B8] font-black uppercase tracking-widest mb-0.5 flex items-center gap-1"><TrendingUp className={`w-3 h-3 ${isActive ? 'text-[#E8B923]' : 'text-[#E8B923]/50'}`} /> Receita</p>
+                          <div className="flex items-baseline gap-1.5">
+                              <span className={`text-lg font-black ${isActive ? 'text-[#E8B923]' : 'text-[#E8B923]/50'}`}>
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(s.receitaConvertida)}
+                              </span>
+                              <span className="text-[10px] font-bold text-[#64748B]">/ {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(s.totalReceita)}</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
           </div>
       </button>
   );
@@ -463,6 +487,24 @@ export default function PipelineManager({ session }) {
                   <div className="flex items-baseline gap-1">
                     <AnimatedCounter value={activeStats.conversion} className="text-lg font-black text-green-400" />
                     <span className="text-[9px] font-bold text-[#64748B]">{activeStats.gain}/{activeStats.worked}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Receita pill */}
+              <div className={`flex items-center gap-3 bg-[#15171C] border border-[#E8B923]/20 rounded-2xl px-4 py-2 transition-all ${pulse ? 'ring-2 ring-[#E8B923]/40 shadow-[0_0_20px_rgba(232,185,35,0.15)]' : ''}`}>
+                <div className="p-2 bg-[#E8B923]/10 rounded-xl text-[#E8B923]">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[8px] text-[#E8B923] font-black uppercase tracking-widest flex items-center gap-1">Receita</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-sm font-black text-[#E8B923]">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.receitaConvertida || 0)}
+                    </span>
+                    <span className="text-[9px] font-bold text-[#64748B]">
+                      / {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.totalReceita || 0)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -643,10 +685,19 @@ export default function PipelineManager({ session }) {
                           )}
 
                           {op.financeiro > 0 && (
-                            <div className="bg-[#E8B923]/10 border border-[#E8B923]/20 rounded-lg px-2 py-1.5 flex-1 min-w-[40%] text-right ml-auto">
+                            <div className="bg-[#E8B923]/10 border border-[#E8B923]/20 rounded-lg px-2 py-1.5 flex-1 min-w-[30%] text-right ml-auto">
                               <p className="text-[8px] text-[#E8B923] uppercase font-bold tracking-widest leading-none mb-1">Financeiro</p>
                               <p className="text-sm font-black text-[#E8B923]">
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(op.financeiro)}
+                              </p>
+                            </div>
+                          )}
+
+                          {op.receita > 0 && (
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-2 py-1.5 flex-1 min-w-[30%] text-right">
+                              <p className="text-[8px] text-green-400 uppercase font-bold tracking-widest leading-none mb-1">Receita</p>
+                              <p className="text-sm font-black text-green-400">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(op.receita)}
                               </p>
                             </div>
                           )}

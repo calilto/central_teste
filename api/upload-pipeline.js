@@ -60,7 +60,14 @@ export default async function handler(req, res) {
         const date = new Date(Math.round((val - 25569) * 86400 * 1000));
         return date.toISOString().split('T')[0];
       }
-      return val;
+      const strVal = String(val).trim();
+      if (strVal.includes('/')) {
+        const parts = strVal.split('/');
+        if (parts.length === 3 && parts[2].length === 4) {
+          return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+      return strVal;
     };
 
     // Mapeamos os campos da planilha para o banco
@@ -90,6 +97,7 @@ export default async function handler(req, res) {
         financeiro: parseFloat(item[" Financeiro "] || "0"),
         tipo_oportunidade: item.Oportunidade,
         time_origem: item.Time,
+        receita: parseFloat(item.Receita || item[" Receita "] || "0"),
         upload_by: userData.user.id
       };
     });

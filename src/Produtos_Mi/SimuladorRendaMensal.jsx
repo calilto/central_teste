@@ -123,11 +123,7 @@ export default function SimuladorRendaMensal({ onClose }) {
   const monthlyIPCA = (Math.pow(1 + numIPCA / 100, 1 / 12) - 1) * 100;
 
   // Estado inicial
-  const [portfolio, setPortfolio] = useState([
-    { id: 1, name: 'CRA BRF', type: 'IPCA+', contractedRate: 'IPCA + 7,70%', cdiPercent: 0, preRate: 7.70, amount: 50000, maturity: '04/2040', yieldRate: 0, feeRate: 2.25, couponFrequency: 'semestral', couponMonth: '1', annualCoupon: 0, segment: 'Alimentos - Proteína', isTaxFree: true, productType: 'Renda Fixa' },
-    { id: 2, name: 'CDCA BTG', type: 'Prefixado', contractedRate: '12,30% a.a.', cdiPercent: 0, preRate: 12.30, amount: 50000, maturity: '07/2029', yieldRate: 0, feeRate: 0.50, couponFrequency: 'semestral', couponMonth: '0', annualCoupon: 0, segment: 'Financeiro', isTaxFree: true, productType: 'Renda Fixa' },
-    { id: 3, name: 'CDB C6', type: 'CDI', contractedRate: '115% do CDI', cdiPercent: 115, preRate: 0, amount: 110000, maturity: '12/2031', yieldRate: 0, feeRate: 1.28, couponFrequency: '', couponMonth: '', annualCoupon: 0, segment: 'Financeiro', isTaxFree: false, productType: 'Renda Fixa' },
-  ]);
+  const [portfolio, setPortfolio] = useState([]);
 
   // Estados do formulário
   const [productType, setProductType] = useState('Renda Fixa');
@@ -271,7 +267,13 @@ export default function SimuladorRendaMensal({ onClose }) {
              let taxaClean = 0;
              // Limpeza mágica rápida (tira %, pega os numeros)
              const stringMatch = rawTaxa.match(/[\d,.]+/);
-             if (stringMatch) taxaClean = parseFloat(stringMatch[0].replace(/\./g, '').replace(',', '.')) || 0;
+             if (stringMatch) {
+               let valStr = stringMatch[0];
+               if (valStr.includes(',')) {
+                 valStr = valStr.replace(/\./g, '').replace(',', '.');
+               }
+               taxaClean = parseFloat(valStr) || 0;
+             }
 
              let cdiPercent = 0;
              let preRate = 0;
@@ -416,10 +418,14 @@ export default function SimuladorRendaMensal({ onClose }) {
       invested += asset.amount;
       commission += asset.amount * (asset.feeRate / 100);
 
-      if (allocationMap[asset.type]) {
-        allocationMap[asset.type] += asset.amount;
+      let groupType = asset.type;
+      if (asset.type === 'CDI+' || asset.type === 'CDI') groupType = 'Pós-fixado';
+      else if (asset.type === 'IPCA+') groupType = 'Inflação';
+      else if (asset.type === 'Prefixado') groupType = 'Prefixado';
+      if (allocationMap[groupType]) {
+        allocationMap[groupType] += asset.amount;
       } else {
-        allocationMap[asset.type] = asset.amount;
+        allocationMap[groupType] = asset.amount;
       }
 
       // Agrupamento por Segmento
@@ -1118,7 +1124,22 @@ export default function SimuladorRendaMensal({ onClose }) {
           {/* Lista de Ativos */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-lg overflow-hidden">
             <div className="p-4 border-b border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
-              <h3 className="text-md font-semibold text-white">Composição Atual</h3>
+              <div className="flex items-center gap-4">
+                <h3 className="text-md font-semibold text-white">Composição Atual</h3>
+                {portfolio.length > 0 && !isPresentationMode && (
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('Tem certeza que deseja limpar todos os ativos da carteira?')) {
+                        setPortfolio([]);
+                      }
+                    }} 
+                    className="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 border border-red-900/30 bg-red-900/10 px-2 py-1 rounded"
+                    title="Remover todos os ativos"
+                  >
+                    <Trash2 size={14} /> Limpar Tudo
+                  </button>
+                )}
+              </div>
               <span className="text-xs text-zinc-400 bg-zinc-800 px-2 py-1 rounded-md">{portfolio.length} ativos</span>
             </div>
             <div className="overflow-x-auto">
