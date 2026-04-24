@@ -67,6 +67,7 @@ function ProgressRing({ value, size = 52, stroke = 4, color = '#3B82F6', trackCo
 }
 
 export default function PipelineManager({ session }) {
+  const META_MENSAL = 50000;
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -77,6 +78,7 @@ export default function PipelineManager({ session }) {
   const [search, setSearch] = useState('');
   const [expandedClients, setExpandedClients] = useState(new Set());
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [justGained, setJustGained] = useState(null);
 
   const categoryMap = {
     'RV': { name: 'Renda Variável', icon: <TrendingUp className="w-4 h-4" />, role: 'leader_rv', aliases: ['RV', 'RENDA VARIÁVEL', 'RENDA VARIAVEL'] },
@@ -136,6 +138,12 @@ export default function PipelineManager({ session }) {
 
   const toggleStatus = async (id, currentStatus, targetStatus) => {
     const newStatus = currentStatus === targetStatus ? 'pending' : targetStatus;
+    
+    if (newStatus === 'gain') {
+      setJustGained(id);
+      setTimeout(() => setJustGained(null), 1500);
+    }
+
     setOpportunities(prev => prev.map(op => op.id === id ? { ...op, status: newStatus } : op));
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -234,6 +242,14 @@ export default function PipelineManager({ session }) {
       return acc;
     }, {});
   }, [filteredOps]);
+
+  const topParetoClients = useMemo(() => {
+    const clients = Object.entries(groupedTasks).map(([clienteNome, ops]) => {
+      const potencial = ops.reduce((acc, op) => acc + (op.receita || 0), 0);
+      return { clienteNome, potencial };
+    });
+    return clients.filter(c => c.potencial > 0).sort((a, b) => b.potencial - a.potencial).slice(0, 3);
+  }, [groupedTasks]);
 
   const clearPipeline = async () => {
     setShowClearConfirm(false);
@@ -426,18 +442,27 @@ export default function PipelineManager({ session }) {
                   </div>
               </div>
 
-              {/* Receita */}
-              <div className={`rounded-2xl p-3 border relative overflow-hidden transition-colors ${isActive ? 'bg-[#15171C] border-[#E8B923]/30' : 'bg-[#15171C] border-[#1F232B]'}`}>
-                  <div className="flex items-center justify-between relative z-10">
+              {/* Receita com Barra de Meta */}
+              <div className={`rounded-2xl p-3 border relative overflow-hidden transition-colors flex flex-col gap-2 ${isActive ? 'bg-[#15171C] border-[#E8B923]/30' : 'bg-[#15171C] border-[#1F232B]'}`}>
+                  <div className="flex items-center justify-between relative z-10 w-full">
                       <div>
                           <p className="text-[9px] text-[#94A3B8] font-black uppercase tracking-widest mb-0.5 flex items-center gap-1"><TrendingUp className={`w-3 h-3 ${isActive ? 'text-[#E8B923]' : 'text-[#E8B923]/50'}`} /> Receita</p>
                           <div className="flex items-baseline gap-1.5">
                               <span className={`text-lg font-black ${isActive ? 'text-[#E8B923]' : 'text-[#E8B923]/50'}`}>
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(s.receitaConvertida)}
                               </span>
-                              <span className="text-[10px] font-bold text-[#64748B]">/ {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(s.totalReceita)}</span>
                           </div>
                       </div>
+                      <div className="text-right">
+                          <p className="text-[8px] text-[#64748B] font-bold uppercase tracking-widest mb-0.5">Meta</p>
+                          <span className="text-[10px] font-black text-[#94A3B8]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(META_MENSAL)}</span>
+                      </div>
+                  </div>
+                  <div className="w-full h-1.5 bg-[#1C1F26] rounded-full overflow-hidden relative z-10 mt-1">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ease-out ${s.receitaConvertida >= META_MENSAL ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-[#E8B923] shadow-[0_0_8px_rgba(232,185,35,0.4)]'}`}
+                        style={{ width: `${Math.min((s.receitaConvertida / META_MENSAL) * 100, 100)}%` }}
+                      ></div>
                   </div>
               </div>
           </div>
@@ -491,21 +516,30 @@ export default function PipelineManager({ session }) {
                 </div>
               </div>
 
-              {/* Receita pill */}
-              <div className={`flex items-center gap-3 bg-[#15171C] border border-[#E8B923]/20 rounded-2xl px-4 py-2 transition-all ${pulse ? 'ring-2 ring-[#E8B923]/40 shadow-[0_0_20px_rgba(232,185,35,0.15)]' : ''}`}>
-                <div className="p-2 bg-[#E8B923]/10 rounded-xl text-[#E8B923]">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[8px] text-[#E8B923] font-black uppercase tracking-widest flex items-center gap-1">Receita</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-sm font-black text-[#E8B923]">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.receitaConvertida || 0)}
-                    </span>
-                    <span className="text-[9px] font-bold text-[#64748B]">
-                      / {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.totalReceita || 0)}
-                    </span>
+              {/* Receita pill com Meta */}
+              <div className={`flex flex-col bg-[#15171C] border border-[#E8B923]/20 rounded-2xl px-4 py-2 transition-all relative overflow-hidden ${pulse ? 'ring-2 ring-[#E8B923]/40 shadow-[0_0_20px_rgba(232,185,35,0.15)]' : ''}`}>
+                <div className="flex items-center gap-3 relative z-10 pb-0.5">
+                  <div className="p-2 bg-[#E8B923]/10 rounded-xl text-[#E8B923]">
+                    <TrendingUp className="w-5 h-5" />
                   </div>
+                  <div>
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-[8px] text-[#E8B923] font-black uppercase tracking-widest flex items-center gap-1">Receita</p>
+                      <span className="text-[8px] font-bold text-[#64748B] uppercase">Meta: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(META_MENSAL)}</span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-sm font-black text-[#E8B923]">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.receitaConvertida || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {/* Progress bar overlay at bottom */}
+                <div className="absolute bottom-0 left-0 h-[3px] bg-[#1C1F26] w-full z-10">
+                  <div 
+                    className={`h-full transition-all duration-1000 ease-out ${activeStats.receitaConvertida >= META_MENSAL ? 'bg-green-400' : 'bg-[#E8B923]'}`}
+                    style={{ width: `${Math.min(((activeStats.receitaConvertida || 0) / META_MENSAL) * 100, 100)}%` }}
+                  ></div>
                 </div>
               </div>
             </div>
@@ -607,6 +641,38 @@ export default function PipelineManager({ session }) {
             </div>
           </div>
 
+          {topParetoClients.length > 0 && (
+            <div className="bg-[#15171C] border border-[#E8B923]/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden mb-6">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#E8B923] opacity-5 blur-[100px] rounded-full pointer-events-none"></div>
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="p-2 bg-[#E8B923]/10 rounded-xl"><TrendingUp className="w-5 h-5 text-[#E8B923]" /></div>
+                <div>
+                  <h3 className="text-lg font-black text-white uppercase tracking-tighter">Top Clientes (Pareto)</h3>
+                  <p className="text-xs text-[#64748B]">Maior potencial de receita. Excelente oportunidade para pedir indicações!</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+                {topParetoClients.map((client, index) => (
+                  <div key={client.clienteNome} className="bg-[#1A1D24] border border-[#1F232B] rounded-2xl p-4 flex items-center gap-4 transition-all hover:border-[#E8B923]/30 hover:shadow-[0_4px_20px_rgba(232,185,35,0.1)]">
+                    <div className="w-10 h-10 rounded-xl bg-[#E8B923]/10 flex items-center justify-center text-[#E8B923] font-black text-lg border border-[#E8B923]/20 flex-shrink-0">
+                      {index + 1}º
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-black text-white truncate">{client.clienteNome}</h4>
+                      <div className="flex items-baseline gap-1.5 mt-0.5">
+                        <span className="text-xs font-bold text-[#E8B923]">
+                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(client.potencial)}
+                        </span>
+                        <span className="text-[9px] text-[#64748B] uppercase font-bold">potencial</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-6">
             {Object.entries(groupedTasks).map(([clienteNome, ops]) => {
               const is360 = expandedClients.has(clienteNome);
@@ -648,8 +714,10 @@ export default function PipelineManager({ session }) {
                   {ops.map(op => {
                     const isGain = op.status === 'gain';
                     const isLoss = op.status === 'loss';
+                    const isJustGained = justGained === op.id;
                     return (
-                      <div key={op.id} className={`bg-[#1A1D24] border ${isGain ? 'border-green-500/30 shadow-green-500/5' : isLoss ? 'border-red-500/30' : 'border-[#2A2F3A]'} rounded-2xl p-5 space-y-4 relative transition-all ${isGain || isLoss ? 'opacity-60' : 'hover:border-[#E8B923]/40'}`}>
+                      <div key={op.id} className={`bg-[#1A1D24] border ${isGain ? 'border-green-500/30 shadow-green-500/5' : isLoss ? 'border-red-500/30' : 'border-[#2A2F3A]'} rounded-2xl p-5 space-y-4 relative transition-all overflow-hidden ${isGain || isLoss ? 'opacity-60' : 'hover:border-[#E8B923]/40'} ${isJustGained ? 'animate-gain-pulse !opacity-100 z-10' : ''}`}>
+                        {isJustGained && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer-sweep pointer-events-none z-0" style={{mixBlendMode: 'overlay'}}></div>}
                         <div className="absolute top-4 right-4 flex gap-2">
                            <button onClick={() => toggleStatus(op.id, op.status, 'gain')} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isGain ? 'bg-green-500 text-black shadow-lg shadow-green-500/20' : 'bg-white/5 text-[#64748B] hover:bg-green-500/40'}`}><CheckCircle2 className="w-4 h-4" /></button>
                            <button onClick={() => toggleStatus(op.id, op.status, 'loss')} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${isLoss ? 'bg-red-500 text-black shadow-lg shadow-red-500/20' : 'bg-white/5 text-[#64748B] hover:bg-red-500/40'}`}><XCircle className="w-4 h-4" /></button>
@@ -710,9 +778,9 @@ export default function PipelineManager({ session }) {
                           )}
 
                           {op.receita > 0 && (
-                            <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-2 py-1.5 flex-1 min-w-[30%] text-right">
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-2 py-1.5 flex-1 min-w-[30%] text-right relative z-10">
                               <p className="text-[8px] text-green-400 uppercase font-bold tracking-widest leading-none mb-1">Receita</p>
-                              <p className="text-sm font-black text-green-400">
+                              <p className={`text-sm font-black text-green-400 ${isJustGained ? 'animate-text-glow' : ''}`}>
                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(op.receita)}
                               </p>
                             </div>
