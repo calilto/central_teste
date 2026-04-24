@@ -240,9 +240,14 @@ export default function SimuladorRendaMensal({ onClose }) {
              const rawName = row['Nome do Produto'] || row['Nome do produto'] || row['Nome'] || row['Produto'];
              const name = typeof rawName === 'string' ? rawName : (rawName ? String(rawName) : `Produto ${sheetIndex}-${index + 1}`);
 
-             const rawApp = String(row['Total aplicado'] || row['Aplicação'] || row['Aplicacao'] || row['Valor'] || '0');
-             const amountCleanStr = rawApp.replace(/R\$/gi, '').replace(/\./g, '').replace(',', '.').trim();
-             const amount = parseFloat(amountCleanStr) || 0;
+             let amount = 0;
+             const rawApp = row['Total aplicado'] || row['Aplicação'] || row['Aplicacao'] || row['Valor'] || 0;
+             if (typeof rawApp === 'number') {
+                 amount = rawApp;
+             } else {
+                 const amountCleanStr = String(rawApp).replace(/R\$/gi, '').replace(/\./g, '').replace(',', '.').trim();
+                 amount = parseFloat(amountCleanStr) || 0;
+             }
 
              const segment = row['Segmento'] || row['Setor'] || '';
              
@@ -302,16 +307,24 @@ export default function SimuladorRendaMensal({ onClose }) {
              if (isFundos) finalFreq = 'mensal'; // Fundo sempre mensal
              
              let couponM = '';
-             let venc = String(row['Vencimento'] || '');
-             if (venc.includes('/')) {
+             let vencRaw = row['Vencimento'] || '';
+             let venc = String(vencRaw);
+             
+             if (typeof vencRaw === 'number') {
+                 // Converte data do Excel para JS (considerando 1/1/1970 = 25569)
+                 const date = new Date((vencRaw - 25569) * 86400 * 1000);
+                 const m = date.getUTCMonth();
+                 couponM = String(m);
+                 const d = String(date.getUTCDate()).padStart(2, '0');
+                 const mm = String(m + 1).padStart(2, '0');
+                 const yyyy = date.getUTCFullYear();
+                 venc = `${d}/${mm}/${yyyy}`;
+             } else if (venc.includes('/')) {
                 const parts = venc.split('/');
                 if (parts.length >= 2) {
-                   const m = parseInt(parts[0]) - 1; 
+                   const m = parseInt(parts[1]) - 1; // Mês no formato DD/MM/YYYY é o índice 1
                    if (m >= 0 && m <= 11) couponM = String(m);
                 }
-             } else if (venc && !isNaN(venc)) {
-                // Se vier dia do excel, tratamos depois senao deixa branco
-                couponM = '';
              }
 
              // Isenção IR
@@ -453,21 +466,28 @@ export default function SimuladorRendaMensal({ onClose }) {
       let monthIncome = 0;
       portfolio.forEach(asset => {
         // === NOVA MATEMÁTICA RODA DIRETAMENTE A TAXA DE CADA LINHA, ELIMINANDO O CUPOM ANUAL DUPLICADO ===
-        let baseAnnualTotal = 0;
+        let accrualBaseAnnualTotal = 0;
+        let couponBaseAnnualTotal = 0;
         
         // 1. Descobrir a Taxa Anual Total Nominal Bruta
         if (asset.productType === 'Fundos') {
-           baseAnnualTotal = asset.annualCoupon > 0 ? asset.annualCoupon : 0;
+           accrualBaseAnnualTotal = asset.annualCoupon > 0 ? asset.annualCoupon : 0;
+           couponBaseAnnualTotal = accrualBaseAnnualTotal;
         } else {
            if (asset.type === 'CDI') {
-              baseAnnualTotal = numCDI * (asset.cdiPercent > 0 ? (asset.cdiPercent / 100) : 1);
+              accrualBaseAnnualTotal = numCDI * (asset.cdiPercent > 0 ? (asset.cdiPercent / 100) : 1);
+              couponBaseAnnualTotal = accrualBaseAnnualTotal;
            } else if (asset.type === 'CDI+') {
-              baseAnnualTotal = numCDI + asset.preRate;
+              accrualBaseAnnualTotal = numCDI + asset.preRate;
+              couponBaseAnnualTotal = accrualBaseAnnualTotal;
            } else if (asset.type === 'IPCA+') {
-              // IPCA+ sempre projeta o IPCA + spread para simulação dinâmica
-              baseAnnualTotal = numIPCA + asset.preRate;
+              // IPCA+ sempre projeta o IPCA + spread para capitalização dinâmica (se não distribuir cupom)
+              accrualBaseAnnualTotal = numIPCA + asset.preRate;
+              // No cupom de IPCA+ apenas os juros reais são distribuídos
+              couponBaseAnnualTotal = asset.preRate;
            } else if (asset.type === 'Prefixado') {
-              baseAnnualTotal = asset.preRate;
+              accrualBaseAnnualTotal = asset.preRate;
+              couponBaseAnnualTotal = accrualBaseAnnualTotal;
            }
         }
 
@@ -478,16 +498,16 @@ export default function SimuladorRendaMensal({ onClose }) {
         // 2. Aplicar a frequência com cortes (IR) correspondentes
         // Por padrao, projetamos a rentabilidade num formato "Acréscimo Mês a Mês" caso nao tenha cupom marcado
         if (!asset.couponFrequency) {
-           const monthlyAccrualRate = (Math.pow(1 + baseAnnualTotal / 100, 1 / 12) - 1) * 100;
+           const monthlyAccrualRate = (Math.pow(1 + accrualBaseAnnualTotal / 100, 1 / 12) - 1) * 100;
            monthIncome += asset.amount * ((monthlyAccrualRate / 100) * irMultiplier);
         } else {
            // Tem fluxo de caixa programado
            if (asset.couponFrequency === 'mensal') {
               let periodicYieldRate = 0;
               if (asset.productType === 'Fundos') {
-                 periodicYieldRate = baseAnnualTotal / 12; // Linearidade comum em fundos
+                 periodicYieldRate = couponBaseAnnualTotal / 12; // Linearidade comum em fundos
               } else {
-                 periodicYieldRate = (Math.pow(1 + baseAnnualTotal / 100, 1 / 12) - 1) * 100;
+                 periodicYieldRate = (Math.pow(1 + couponBaseAnnualTotal / 100, 1 / 12) - 1) * 100;
               }
               monthIncome += asset.amount * ((periodicYieldRate / 100) * irMultiplier);
               
@@ -498,7 +518,7 @@ export default function SimuladorRendaMensal({ onClose }) {
               const mVal = parseInt(m.value);
               // Paga apenas no mes de cupom e na janela + 6 meses
               if (mVal === baseMonth || mVal === secondMonth) {
-                 const semiYieldRate = (Math.pow(1 + baseAnnualTotal / 100, 1 / 2) - 1) * 100;
+                 const semiYieldRate = (Math.pow(1 + couponBaseAnnualTotal / 100, 1 / 2) - 1) * 100;
                  monthIncome += asset.amount * ((semiYieldRate / 100) * irMultiplier);
               }
            }
