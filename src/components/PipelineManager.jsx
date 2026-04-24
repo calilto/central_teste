@@ -18,7 +18,10 @@ import {
   Target,
   Activity,
   Zap,
-  Flame
+  Flame,
+  Edit2,
+  Check,
+  X
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
@@ -78,6 +81,9 @@ export default function PipelineManager({ session }) {
   const [expandedClients, setExpandedClients] = useState(new Set());
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [justGained, setJustGained] = useState(null);
+  const [clientDirectory, setClientDirectory] = useState({});
+  const [editingClient, setEditingClient] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
   const categoryMap = {
     'RV': { name: 'Renda Variável', icon: <TrendingUp className="w-4 h-4" />, role: 'leader_rv', aliases: ['RV', 'RENDA VARIÁVEL', 'RENDA VARIAVEL'] },
@@ -102,7 +108,20 @@ export default function PipelineManager({ session }) {
   useEffect(() => {
     fetchProfile();
     fetchOpportunities();
+    fetchClientDirectory();
   }, []);
+
+  async function fetchClientDirectory() {
+    try {
+      const res = await fetch('/api/get-client-directory');
+      const json = await res.json();
+      if (json.data) {
+        const dict = {};
+        json.data.forEach(item => { dict[item.codigo] = item.nome; });
+        setClientDirectory(dict);
+      }
+    } catch (e) { console.error("Error fetching client directory", e); }
+  }
 
   async function fetchProfile() {
     try {
@@ -127,6 +146,32 @@ export default function PipelineManager({ session }) {
       else next.add(clienteNome);
       return next;
     });
+  };
+
+  const handleUpdateClientName = async (codigo, currentName) => {
+    if (!editingName || editingName === currentName) {
+      setEditingClient(null);
+      return;
+    }
+    
+    // Update local state optimistic
+    setClientDirectory(prev => ({ ...prev, [codigo]: editingName }));
+    setEditingClient(null);
+
+    // Call API
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      await fetch('/api/update-client-name', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentSession?.access_token}`
+        },
+        body: JSON.stringify({ codigo, nome: editingName })
+      });
+    } catch (e) {
+      console.error("Error updating client name", e);
+    }
   };
 
   const availableCategories = useMemo(() => {
@@ -224,14 +269,14 @@ export default function PipelineManager({ session }) {
   }, [opportunities]);
 
   const codeToNameMap = useMemo(() => {
-    const map = {};
+    const map = { ...clientDirectory };
     opportunities.forEach(op => {
-      if (op.cliente_codigo && op.cliente_nome && op.cliente_nome !== '-') {
+      if (op.cliente_codigo && op.cliente_nome && op.cliente_nome !== '-' && !map[op.cliente_codigo]) {
         map[op.cliente_codigo] = op.cliente_nome;
       }
     });
     return map;
-  }, [opportunities]);
+  }, [opportunities, clientDirectory]);
 
   const filteredOps = useMemo(() => {
     return opportunities.filter(op => {
@@ -263,6 +308,13 @@ export default function PipelineManager({ session }) {
       return acc;
     }, {});
   }, [filteredOps, codeToNameMap]);
+
+  const namelessCount = useMemo(() => {
+    return Object.keys(groupedTasks).filter(name => {
+      const ops = groupedTasks[name];
+      return name === ops[0]?.cliente_codigo || name === '-';
+    }).length;
+  }, [groupedTasks]);
 
   const topParetoClients = useMemo(() => {
     const clients = Object.entries(groupedTasks).map(([clienteNome, ops]) => {
@@ -657,7 +709,17 @@ export default function PipelineManager({ session }) {
               <input type="text" placeholder={`Filtrar cliente...`} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-[#15171C] border border-[#1F232B] rounded-2xl pl-14 pr-6 py-4 text-sm text-white focus:border-[#E8B923]/50 outline-none shadow-2xl" />
             </div>
             <div className="flex items-center justify-between bg-[#15171C] border border-[#1F232B] rounded-2xl px-6 py-4 shadow-xl">
-                <div className="flex items-center gap-3"><Users className="w-5 h-5 text-[#E8B923]" /><span className="text-sm font-bold text-white uppercase">{Object.keys(groupedTasks).length} Clientes</span></div>
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-[#E8B923]" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white uppercase">{Object.keys(groupedTasks).length} Clientes</span>
+                    {namelessCount > 0 && (
+                      <span className="px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded-md text-[10px] font-bold text-red-400">
+                        {namelessCount} sem nome
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <div className="text-right"><p className="text-[10px] text-[#64748B] font-bold">TOTAL PIPE</p><p className="text-sm font-black text-white">{filteredOps.length}</p></div>
             </div>
           </div>
@@ -699,6 +761,7 @@ export default function PipelineManager({ session }) {
               const is360 = expandedClients.has(clienteNome);
               const clientReceitaPotencial = ops.reduce((acc, op) => acc + (op.receita || 0), 0);
               const clientReceitaConvertida = ops.filter(op => op.status === 'gain').reduce((acc, op) => acc + (op.receita || 0), 0);
+              const isNameless = clienteNome === ops[0]?.cliente_codigo || clienteNome === '-';
 
               return (
               <div key={clienteNome} className={`bg-[#15171C] border ${is360 ? 'border-[#E8B923]' : 'border-[#1F232B]'} rounded-3xl overflow-hidden shadow-2xl transition-all`}>
@@ -706,7 +769,38 @@ export default function PipelineManager({ session }) {
                   <div className="flex items-center gap-5">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#E8B923] to-[#B8860B] flex items-center justify-center text-black font-black text-lg">{clienteNome[0]}</div>
                     <div>
-                      <h4 className="text-xl font-black text-white">{clienteNome}</h4>
+                      {editingClient === ops[0].cliente_codigo ? (
+                        <div className="flex items-center gap-2 mb-1">
+                          <input 
+                            type="text" 
+                            className="bg-[#1A1D24] border border-[#E8B923]/50 rounded-lg px-3 py-1 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-[#E8B923]/30"
+                            value={editingName} 
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateClientName(ops[0].cliente_codigo, clienteNome)}
+                            autoFocus
+                          />
+                          <button onClick={() => handleUpdateClientName(ops[0].cliente_codigo, clienteNome)} className="bg-green-500/20 text-green-400 p-1.5 rounded-lg hover:bg-green-500/30 transition-colors"><Check className="w-4 h-4" /></button>
+                          <button onClick={() => setEditingClient(null)} className="bg-red-500/20 text-red-400 p-1.5 rounded-lg hover:bg-red-500/30 transition-colors"><X className="w-4 h-4" /></button>
+                        </div>
+                      ) : isNameless ? (
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-xl font-black text-red-400/80 italic">Cliente Sem Nome</h4>
+                          {ops[0].cliente_codigo && (
+                            <button onClick={() => { setEditingClient(ops[0].cliente_codigo); setEditingName(''); }} className="text-red-400 animate-pulse hover:text-red-300 transition-colors" title="Cadastre o nome deste cliente!">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-xl font-black text-white">{clienteNome}</h4>
+                          {ops[0].cliente_codigo && (
+                            <button onClick={() => { setEditingClient(ops[0].cliente_codigo); setEditingName(clienteNome !== ops[0].cliente_codigo ? clienteNome : ''); }} className="text-[#64748B] hover:text-[#E8B923] transition-colors" title="Editar nome do cliente">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <div className="flex items-center gap-4 mt-1">
                         <p className="text-xs text-[#64748B] font-bold">Cod: {ops[0].cliente_codigo || '-'} • <span className="text-[#E8B923]">{ops.length} itens</span></p>
                         {clientReceitaPotencial > 0 && (
