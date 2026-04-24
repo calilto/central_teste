@@ -73,7 +73,7 @@ export default function PipelineManager({ session }) {
   const [opportunities, setOpportunities] = useState([]);
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [activeView, setActiveView] = useState('dashboard');
-  const [selectedCategory, setSelectedCategory] = useState('RV');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [search, setSearch] = useState('');
   const [expandedClients, setExpandedClients] = useState(new Set());
   const [showClearConfirm, setShowClearConfirm] = useState(false);
