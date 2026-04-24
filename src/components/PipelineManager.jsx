@@ -67,7 +67,6 @@ function ProgressRing({ value, size = 52, stroke = 4, color = '#3B82F6', trackCo
 }
 
 export default function PipelineManager({ session }) {
-  const META_MENSAL = 50000;
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -224,24 +223,46 @@ export default function PipelineManager({ session }) {
     return { areas: statsMap, overall: calculate(opportunities) };
   }, [opportunities]);
 
+  const codeToNameMap = useMemo(() => {
+    const map = {};
+    opportunities.forEach(op => {
+      if (op.cliente_codigo && op.cliente_nome && op.cliente_nome !== '-') {
+        map[op.cliente_codigo] = op.cliente_nome;
+      }
+    });
+    return map;
+  }, [opportunities]);
+
   const filteredOps = useMemo(() => {
     return opportunities.filter(op => {
-      const matchesSearch = op.cliente_nome?.toLowerCase().includes(search.toLowerCase()) || 
+      const resolvedName = op.cliente_nome && op.cliente_nome !== '-' 
+        ? op.cliente_nome 
+        : (op.cliente_codigo && codeToNameMap[op.cliente_codigo]) 
+          ? codeToNameMap[op.cliente_codigo] 
+          : '';
+
+      const matchesSearch = resolvedName.toLowerCase().includes(search.toLowerCase()) || 
                            op.cliente_codigo?.toLowerCase().includes(search.toLowerCase());
-      const is360 = expandedClients.has(op.cliente_nome);
+                           
+      const is360 = expandedClients.has(resolvedName) || expandedClients.has(op.cliente_codigo);
       const matchesCategory = selectedCategory === 'ALL' || isOpInCategory(op.category, selectedCategory) || is360;
       return matchesSearch && matchesCategory;
     });
-  }, [opportunities, search, selectedCategory, expandedClients]);
+  }, [opportunities, search, selectedCategory, expandedClients, codeToNameMap]);
 
   const groupedTasks = useMemo(() => {
     return filteredOps.reduce((acc, op) => {
-      const key = op.cliente_nome || op.cliente_codigo || 'Desconhecido';
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(op);
+      const resolvedName = op.cliente_nome && op.cliente_nome !== '-' 
+        ? op.cliente_nome 
+        : (op.cliente_codigo && codeToNameMap[op.cliente_codigo]) 
+          ? codeToNameMap[op.cliente_codigo] 
+          : op.cliente_codigo || 'Desconhecido';
+          
+      if (!acc[resolvedName]) acc[resolvedName] = [];
+      acc[resolvedName].push(op);
       return acc;
     }, {});
-  }, [filteredOps]);
+  }, [filteredOps, codeToNameMap]);
 
   const topParetoClients = useMemo(() => {
     const clients = Object.entries(groupedTasks).map(([clienteNome, ops]) => {
@@ -442,7 +463,7 @@ export default function PipelineManager({ session }) {
                   </div>
               </div>
 
-              {/* Receita com Barra de Meta */}
+              {/* Receita com Barra de Potencial Máximo */}
               <div className={`rounded-2xl p-3 border relative overflow-hidden transition-colors flex flex-col gap-2 ${isActive ? 'bg-[#15171C] border-[#E8B923]/30' : 'bg-[#15171C] border-[#1F232B]'}`}>
                   <div className="flex items-center justify-between relative z-10 w-full">
                       <div>
@@ -454,14 +475,14 @@ export default function PipelineManager({ session }) {
                           </div>
                       </div>
                       <div className="text-right">
-                          <p className="text-[8px] text-[#64748B] font-bold uppercase tracking-widest mb-0.5">Meta</p>
-                          <span className="text-[10px] font-black text-[#94A3B8]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(META_MENSAL)}</span>
+                          <p className="text-[8px] text-[#64748B] font-bold uppercase tracking-widest mb-0.5">Potencial</p>
+                          <span className="text-[10px] font-black text-[#94A3B8]">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(s.totalReceita)}</span>
                       </div>
                   </div>
                   <div className="w-full h-1.5 bg-[#1C1F26] rounded-full overflow-hidden relative z-10 mt-1">
                       <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out ${s.receitaConvertida >= META_MENSAL ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-[#E8B923] shadow-[0_0_8px_rgba(232,185,35,0.4)]'}`}
-                        style={{ width: `${Math.min((s.receitaConvertida / META_MENSAL) * 100, 100)}%` }}
+                        className={`h-full rounded-full transition-all duration-1000 ease-out ${s.receitaConvertida > 0 && s.receitaConvertida >= s.totalReceita ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-[#E8B923] shadow-[0_0_8px_rgba(232,185,35,0.4)]'}`}
+                        style={{ width: `${Math.min(((s.receitaConvertida || 0) / (s.totalReceita || 1)) * 100, 100)}%` }}
                       ></div>
                   </div>
               </div>
@@ -516,7 +537,7 @@ export default function PipelineManager({ session }) {
                 </div>
               </div>
 
-              {/* Receita pill com Meta */}
+              {/* Receita pill com Potencial Máximo */}
               <div className={`flex flex-col bg-[#15171C] border border-[#E8B923]/20 rounded-2xl px-4 py-2 transition-all relative overflow-hidden ${pulse ? 'ring-2 ring-[#E8B923]/40 shadow-[0_0_20px_rgba(232,185,35,0.15)]' : ''}`}>
                 <div className="flex items-center gap-3 relative z-10 pb-0.5">
                   <div className="p-2 bg-[#E8B923]/10 rounded-xl text-[#E8B923]">
@@ -525,7 +546,7 @@ export default function PipelineManager({ session }) {
                   <div>
                     <div className="flex items-center justify-between gap-4">
                       <p className="text-[8px] text-[#E8B923] font-black uppercase tracking-widest flex items-center gap-1">Receita</p>
-                      <span className="text-[8px] font-bold text-[#64748B] uppercase">Meta: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(META_MENSAL)}</span>
+                      <span className="text-[8px] font-bold text-[#64748B] uppercase">Potencial: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(activeStats.totalReceita || 0)}</span>
                     </div>
                     <div className="flex items-baseline gap-1 mt-0.5">
                       <span className="text-sm font-black text-[#E8B923]">
@@ -537,8 +558,8 @@ export default function PipelineManager({ session }) {
                 {/* Progress bar overlay at bottom */}
                 <div className="absolute bottom-0 left-0 h-[3px] bg-[#1C1F26] w-full z-10">
                   <div 
-                    className={`h-full transition-all duration-1000 ease-out ${activeStats.receitaConvertida >= META_MENSAL ? 'bg-green-400' : 'bg-[#E8B923]'}`}
-                    style={{ width: `${Math.min(((activeStats.receitaConvertida || 0) / META_MENSAL) * 100, 100)}%` }}
+                    className={`h-full transition-all duration-1000 ease-out ${activeStats.receitaConvertida > 0 && activeStats.receitaConvertida >= activeStats.totalReceita ? 'bg-green-400' : 'bg-[#E8B923]'}`}
+                    style={{ width: `${Math.min(((activeStats.receitaConvertida || 0) / (activeStats.totalReceita || 1)) * 100, 100)}%` }}
                   ></div>
                 </div>
               </div>
